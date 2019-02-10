@@ -7,12 +7,9 @@ import re
 import spacy
 
 nlp = spacy.load('en', disable=['parser', 'ner'])
-indir = '/Users/florian_song/cs401data/data'
+# indir = '/Users/florian_song/cs401data/data'
 
-# indir = '/u/cs401/A1/data/'
-# abbrevfile = '/u/cs401/Wordlists/abbrev.english'
-# cliticsfile = '/u/cs401/Wordlists/clitics'
-# stopwordsfile = '/u/cs401/Wordlists/StopWords'
+indir = '/u/cs401/A1/data/'
 
 def read_file(sourcefile):
     lines = []
@@ -40,9 +37,12 @@ def processclitics(clitics):
 _songfeil_globals = {
     'dirs': {
         'indir': '/Users/florian_song/cs401data/data',
-        'abbrev': '/Users/florian_song/cs401data/Wordlists/abbrev.english',
-        'clitics': '/Users/florian_song/cs401data/Wordlists/clitics',
-        'stopwords': '/Users/florian_song/cs401data/Wordlists/StopWords'
+        # 'abbrev': '/Users/florian_song/cs401data/Wordlists/abbrev.english',
+        # 'clitics': '/Users/florian_song/cs401data/Wordlists/clitics',
+        # 'stopwords': '/Users/florian_song/cs401data/Wordlists/StopWords'
+        'abbrev': '/u/cs401/Wordlists/abbrev.english',
+        'clitics': '/u/cs401/Wordlists/clitics',
+        'stopwords': '/u/cs401/Wordlists/StopWords'
     }
 }
 
