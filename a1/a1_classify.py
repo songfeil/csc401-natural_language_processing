@@ -49,7 +49,7 @@ def class31(filename):
     npzfile.close()
 
     X, y = arr[:, :-1], arr[:, -1].astype('int')
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.99, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     print(X_train.shape, y_train.shape)
 
     classifiers = {
