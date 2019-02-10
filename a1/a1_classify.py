@@ -1,7 +1,7 @@
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import confusion_matrix
@@ -14,9 +14,11 @@ import sys
 import os
 import csv
 
+
 def accuracy( C ):
     ''' Compute accuracy given Numpy array confusion matrix C. Returns a floating point value '''
     return np.diag(C).sum() / C.sum()
+
 
 def recall( C ):
     ''' Compute recall given Numpy array confusion matrix C. Returns a list of floating point values '''
@@ -53,8 +55,8 @@ def class31(filename):
     print(X_train.shape, y_train.shape)
 
     classifiers = {
-        1: SVC(kernel="linear"),
-        2: SVC(kernel="rbf", gamma=2),
+        1: LinearSVC(),
+        2: SVC(kernel="rbf", gamma=2, max_iter=1000),
         3: RandomForestClassifier(n_estimators=10, max_depth=5),
         4: MLPClassifier(alpha=0.05),
         5: AdaBoostClassifier()
@@ -100,7 +102,7 @@ def class32(X_train, X_test, y_train, y_test,iBest):
     train_size = [1000, 5000, 10000, 15000, 20000]
 
     classifiers = {
-        1: SVC(kernel="linear"),
+        1: LinearSVC(),
         2: SVC(kernel="rbf", gamma=2),
         3: RandomForestClassifier(n_estimators=10, max_depth=5),
         4: MLPClassifier(alpha=0.05),
@@ -163,7 +165,7 @@ def class33(X_train, X_test, y_train, y_test, i, X_1k, y_1k):
         res.append([-1, k] + np.array(pp_train)[selector_train.get_support()].tolist())
 
     classifiers = {
-        1: SVC(kernel="linear"),
+        1: LinearSVC(),
         2: SVC(kernel="rbf", gamma=2),
         3: RandomForestClassifier(n_estimators=10, max_depth=5),
         4: MLPClassifier(alpha=0.05),
@@ -207,7 +209,7 @@ def class34( filename, i ):
     X, y = arr[:, :-1], arr[:, -1].astype('int')
 
     classifiers = {
-        1: SVC(kernel="linear"),
+        1: LinearSVC(),
         2: SVC(kernel="rbf", gamma=2),
         3: RandomForestClassifier(n_estimators=10, max_depth=5),
         4: MLPClassifier(alpha=0.05),

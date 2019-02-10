@@ -5,6 +5,8 @@ import os
 import json
 import re
 import csv
+import string
+import itertools
 
 # import warnings
 #
@@ -64,7 +66,12 @@ def _cat_to_int(string):
 
 # globals
 _songfeil_globals = {
-    'prp': {1: ['i', 'me', 'my', 'mine', 'we', 'us', 'our', 'ours'], 2: ['you', 'your', 'yours', 'u', 'ur', 'urs'], 3: ['he', 'him', 'his', 'she', 'her', 'hers', 'it', 'its', 'they', 'them', 'their', 'theirs']},
+    'prp': {1: ['i', 'me', 'my', 'mine', 'we', 'us', 'our', 'ours'], 2: ['you', 'your', 'yours', 'u', 'ur', 'urs'], 3: [
+        'he', 'him', 'his', 'she', 'her', 'hers', 'it', 'its', 'they', 'them', 'their', 'theirs']},
+    'slang': ['smh', 'fwb', 'lmfao', 'lmao', 'lms', 'tbh', 'rofl', 'wtf', 'bff', 'wyd', 'lylc', 'brb', 'atm', 'imao',
+              'sml', 'btw', 'bw', 'imho', 'fyi', 'ppl', 'sob', 'ttyl', 'imo', 'ltr', 'thx', 'kk', 'omg', 'omfg', 'ttys',
+              'afn', 'bbs', 'cya', 'ez', 'f2f', 'gtr', 'ic', 'jk', 'k', 'ly', 'ya', 'nm', 'np', 'plz', 'ru', 'so', 'tc',
+              'tmi', 'ym', 'ur', 'u', 'sol', 'fml'],
     'future_tense': ['will', "'ll", "gonna"],
     'bgldict': _read_dict("/Users/florian_song/cs401data/wordlists/BristolNorms+GilhoolyLogie.csv", {'aoa': 3, 'img': 4, 'fam': 5}),
     'vaddict': _read_dict('/Users/florian_song/cs401data/wordlists/Ratings_Warriner_et_al.csv', {'v': 2, 'a': 5, 'd': 8}),
@@ -108,7 +115,12 @@ def extract1( comment ):
     feats[7 - 1] = sum(map(lambda x: ',' == x[1], wordlist))
 
     # f8: multi-character punctuation tokens
-    #TODO
+    multi_count = 0
+    is_punc = [(x[0] in string.punctuation) for x in wordlist]
+    for key, group in itertools.groupby(is_punc):
+        if key and len(list(group)) > 1:
+            multi_count += 1
+    feats[8 - 1] = multi_count
 
     # f9: common nouns - NN and NNS
     feats[9 - 1] = sum(map(lambda x: 'NN' == x[1] or 'NNS' == x[1], wordlist))
@@ -123,7 +135,7 @@ def extract1( comment ):
     feats[12 - 1] = sum(map(lambda x: 'WDT' == x[1] or 'WP' == x[1] or 'WP$' == x[1] or 'WRB' == x[1], wordlist))
 
     # f13: slang acronyms
-    #TODO
+    feats[13 - 1] = sum([(x[0] in _songfeil_globals['slang']) for x in wordlist])
 
     # f14: Number of words in uppercase (≥ 3 letters long)
     feats[14 - 1] = sum(map(lambda x: x[0] == x[0].upper() and len(x[0]) >= 3, wordlist))
@@ -132,7 +144,9 @@ def extract1( comment ):
     feats[15 - 1] = np.average(list(map(lambda x: len(x.strip().split()), comment.split('\n'))))
 
     # f16: Average length of tokens, excluding punctuation-only tokens, in characters
-    #TODO
+    is_non_punc = [(x[0] not in string.punctuation) for x in wordlist]
+    token_len = np.array([len(x[0]) for x in wordlist])[is_non_punc]
+    feats[16 - 1] = np.mean(token_len) if len(token_len) > 0 else 0
 
     # f17: Number of sentences
     feats[17 - 1] = len(comment.split('\n'))
