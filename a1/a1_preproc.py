@@ -7,40 +7,64 @@ import re
 import spacy
 
 nlp = spacy.load('en', disable=['parser', 'ner'])
+indir = '/Users/florian_song/cs401data/data'
 
-indir = '/u/cs401/A1/data/'
-abbrevfile = '/u/cs401/Wordlists/abbrev.english'
-cliticsfile = '/u/cs401/Wordlists/clitics'
-stopwordsfile = '/u/cs401/Wordlists/StopWords'
+# indir = '/u/cs401/A1/data/'
+# abbrevfile = '/u/cs401/Wordlists/abbrev.english'
+# cliticsfile = '/u/cs401/Wordlists/clitics'
+# stopwordsfile = '/u/cs401/Wordlists/StopWords'
 
-abbrevs = ['e.g.', 'i.e.', 'U.S.']
-clitics = ["n't"]
-stopwords = []
-
-pattern = {}
-pattern['puncs'] = re.compile("[\!\"\#\$\%\&\,\(\)\*\+\-\.\/\:\;\<\=\>\?\@\[\]\^\_\`\{\|\}\~\\\]+")
-pattern['clitics'] = re.compile("(" + "|".join(clitics) + ")")
-
-def read_file(sourcefile, target):
+def read_file(sourcefile):
+    lines = []
     with open(sourcefile, 'r') as f:
-        lines = f.readlines()
-        target.extend([line.strip() for line in lines])
+        lines.extend(f.readlines())
+    return set([line.strip() for line in lines])
 
 def puncshelper(x):
     word = x.group()
-    if word not in abbrevs:
-        word = pattern['puncs'].sub(lambda x: " " + x.group() + " ", word)
+    if word not in _songfeil_globals['abbrevs']:
+        word = _songfeil_globals['pattern']['puncs'].sub(lambda x: " " + x.group() + " ", word)
     return word
+
+def lemmahelper(token):
+    if token.lemma_[0] != '-':
+        return token.lemma_
+    else:
+        return token.lemma_ if '-' in token.text else token.text
+
+def processclitics(clitics):
+    result = set(map(lambda a: (a + r"\b") if re.match(r"^'\w+", a) else a, clitics))
+    result = set(map(lambda a: (r"\b" + a) if re.match(r"\w+'$", a) else a, result))
+    return result
+
+_songfeil_globals = {
+    'dirs': {
+        'indir': '/Users/florian_song/cs401data/data',
+        'abbrev': '/Users/florian_song/cs401data/Wordlists/abbrev.english',
+        'clitics': '/Users/florian_song/cs401data/Wordlists/clitics',
+        'stopwords': '/Users/florian_song/cs401data/Wordlists/StopWords'
+    }
+}
+
+_songfeil_globals['abbrevs'] = read_file(_songfeil_globals['dirs']['abbrev']).union({'e.g.', 'i.e.', 'U.S.'})
+_songfeil_globals['clitics'] = processclitics(read_file(_songfeil_globals['dirs']['clitics'])).union({r"n't\b"})
+_songfeil_globals['stopwords'] = read_file(_songfeil_globals['dirs']['stopwords'])
+
+_songfeil_globals['pattern'] = {
+    'puncs': re.compile("[\!\"\#\$\%\&\,\(\)\*\+\-\.\/\:\;\<\=\>\?\@\[\]\^\_\`\{\|\}\~\\\]+"),
+    'clitics': re.compile("(" + "|".join(_songfeil_globals['clitics']) + ")", re.IGNORECASE)
+}
+
 
 def preproc1( comment , steps=range(1,11)):
     ''' This function pre-processes a single comment
 
-    Parameters:                                                                      
+    Parameters:
         comment : string, the body of a comment
-        steps   : list of ints, each entry in this list corresponds to a preprocessing step  
+        steps   : list of ints, each entry in this list corresponds to a preprocessing step
 
     Returns:
-        modComm : string, the modified comment 
+        modComm : string, the modified comment
     '''
 
     modComm = comment
@@ -53,57 +77,45 @@ def preproc1( comment , steps=range(1,11)):
         # Since these are also words that people might use
         modComm = re.sub(r'\b(www|http)\S+(\b|)', '', modComm)
     if 4 in steps:
-        read_file(abbrevfile, abbrevs)
         modComm = re.sub(r'(?<!\S)\S+(?!\S)', puncshelper, modComm)
     if 5 in steps:
-        read_file(cliticsfile, clitics)
-        clitics.append(r"'")
-
-        # Add '\b' for word boundry so that does not match irrelevant words
-        for i in range(len(clitics)):
-            if clitics[i][0] == "'" and len(clitics[i]) > 1:
-                clitics[i] += r'\b'
-            elif clitics[i][-1] == "'" and len(clitics[i]) > 1:
-                clitics[i] = r'\b' + clitics[i]
-
-        pattern['clitics'] = re.compile("(" + "|".join(clitics) + ")")
-        modComm = pattern['clitics'].sub(lambda x: " " + x.group() + " ", modComm)
+        modComm = _songfeil_globals['pattern']['clitics'].sub(lambda x: " " + x.group() + " ", modComm)
     if 6 in steps:
         utt = nlp(modComm)
         wordlist = [token.text + "/" + token.tag_ for token in utt if len(token.text.strip()) != 0]
         modComm = " ".join(wordlist)
     if 7 in steps:
-        read_file(stopwordsfile, stopwords)
-        wordlist = list(filter(lambda x: x.split('/')[0] not in stopwords, modComm.split()))
+        wordlist = list(filter(lambda x: x.rsplit('/', 1)[0].lower() not in _songfeil_globals['stopwords'], modComm.split()))
         modComm = " ".join(wordlist)
     if 8 in steps:
-        wordlist = list(map(lambda x: x.split('/')[0], modComm.split()))
-        utt = nlp(" ".join(wordlist))
+        wordlist = list(map(lambda x: x.rsplit('/', 1), modComm.split()))
         newlist = []
-        for token in utt:
-            if len(token.text.strip()) != 0:
-                if token.lemma_[0] != '-':
-                    newlist.append(token.lemma_ + "/" + token.tag_)
+
+        sentence = " ".join(map(lambda x: x[0], wordlist))
+        proc_sentence = nlp(sentence)
+
+        if len(proc_sentence) == len(wordlist):
+            for idx, item in enumerate(wordlist):
+                newlist.append(lemmahelper(proc_sentence[idx]) + '/' + item[1])
+        else:
+            for idx, item in enumerate(wordlist):
+                tag = nlp(item[0])
+                if len(tag) == 1:
+                    newlist.append(lemmahelper(tag[0]) + '/' + item[1])
                 else:
-                    newlist.append(token.text + "/" + token.tag_)
+                    newlist.append("/".join(item))
+
         modComm = " ".join(newlist)
     if 9 in steps:
-        modComm = re.sub("(\.) [A-Z]", lambda x : x.group().replace('. ', '.\n'), modComm)
+        modComm = re.sub("(\.)\"? +[A-Z]", lambda x: x.group().replace(' ', '\n'), modComm)
+        # Since ! and ? won't possibly show in the abbreviation
+        modComm = re.sub("[(\?/\.)(\!/\.)] [^\?\!\.]", lambda x: x.group().replace(' ', '\n'), modComm)
     if 10 in steps:
-        wordlist = []
-        for word in modComm.split():
-            w = word.split('/')
-            w[0] = w[0].lower()
-            wordlist.append("/".join(w))
-        modComm = " ".join(wordlist)
+        modComm = re.sub(r'\b\w+/', lambda x: x.group().lower(), modComm)
 
-    print(modComm)
-    print("---------------------------------------------------")
-        
     return modComm
 
 def main( args ):
-    # Read in abbrevs & clitics from file
 
     allOutput = []
     for subdir, dirs, files in os.walk(indir):
@@ -113,15 +125,24 @@ def main( args ):
 
             data = json.load(open(fullFile))
 
+            input_len = len(data)
+            start_pos = args.ID[0] % len(data)
+            end_pos = start_pos + args.max
+
             # TODO: select appropriate args.max lines
             # TODO: read those lines with something like `j = json.loads(line)`
             # TODO: choose to retain fields from those lines that are relevant to you
-            # TODO: add a field to each selected line called 'cat' with the value of 'file' (e.g., 'Alt', 'Right', ...) 
+            # TODO: add a field to each selected line called 'cat' with the value of 'file' (e.g., 'Alt', 'Right', ...)
             # TODO: process the body field (j['body']) with preproc1(...) using default for `steps` argument
             # TODO: replace the 'body' field with the processed text
             # TODO: append the result to 'allOutput'
 
-            for line in data:
+            for idx in range(start_pos, end_pos):
+                # if (idx - start_pos) % 100 == 0:
+                #     print((idx - start_pos) / 100, " ")
+
+
+                line = data[idx % input_len]
                 j = json.loads(line)
                 cp_args = ["id", "body"]
 
@@ -131,8 +152,12 @@ def main( args ):
 
                 # Process comment & add cat
                 nj["body"] = preproc1(nj["body"], range(1, 11))
-                nj["cat"] = file
 
+                # print(idx, nj["id"])
+                # print(nj["body"])
+                # print("---------------------------------------------------")
+
+                nj["cat"] = file
                 allOutput.append(nj)
 
     fout = open(args.output, 'w')
@@ -151,5 +176,5 @@ if __name__ == "__main__":
     if (args.max > 200272):
         print( "Error: If you want to read more than 200,272 comments per file, you have to read them all." )
         sys.exit(1)
-        
+
     main(args)
