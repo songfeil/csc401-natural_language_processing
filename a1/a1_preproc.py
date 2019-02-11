@@ -67,6 +67,8 @@ def preproc1( comment , steps=range(1,11)):
         modComm : string, the modified comment
     '''
 
+    nlp = spacy.load('en', disable=['parser', 'ner'])
+
     modComm = comment
     if 1 in steps:
         modComm = modComm.replace('\n', ' ')
@@ -85,7 +87,7 @@ def preproc1( comment , steps=range(1,11)):
         wordlist = [token.text + "/" + token.tag_ for token in utt if len(token.text.strip()) != 0]
         modComm = " ".join(wordlist)
     if 7 in steps:
-        wordlist = list(filter(lambda x: x.rsplit('/', 1)[0].lower() not in _songfeil_globals['stopwords'], modComm.split()))
+        wordlist = list(filter(lambda x: x.rsplit('/', 1)[0] not in _songfeil_globals['stopwords'], modComm.split()))
         modComm = " ".join(wordlist)
     if 8 in steps:
         wordlist = list(map(lambda x: x.rsplit('/', 1), modComm.split()))

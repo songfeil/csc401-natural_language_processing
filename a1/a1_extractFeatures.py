@@ -73,10 +73,10 @@ _songfeil_globals = {
               'afn', 'bbs', 'cya', 'ez', 'f2f', 'gtr', 'ic', 'jk', 'k', 'ly', 'ya', 'nm', 'np', 'plz', 'ru', 'so', 'tc',
               'tmi', 'ym', 'ur', 'u', 'sol', 'fml'],
     'future_tense': ['will', "'ll", "gonna"],
-    'bgldict': _read_dict("/Users/florian_song/cs401data/wordlists/BristolNorms+GilhoolyLogie.csv", {'aoa': 3, 'img': 4, 'fam': 5}),
-    'vaddict': _read_dict('/Users/florian_song/cs401data/wordlists/Ratings_Warriner_et_al.csv', {'v': 2, 'a': 5, 'd': 8}),
-    # 'bgldict': _read_dict("/u/cs401/Wordlists/BristolNorms+GilhoolyLogie.csv", {'aoa': 3, 'img': 4, 'fam': 5}),
-    # 'vaddict': _read_dict('/u/cs401/Wordlists/Ratings_Warriner_et_al.csv', {'v': 2, 'a': 5, 'd': 8}),
+    # 'bgldict': _read_dict("/Users/florian_song/cs401data/wordlists/BristolNorms+GilhoolyLogie.csv", {'aoa': 3, 'img': 4, 'fam': 5}),
+    # 'vaddict': _read_dict('/Users/florian_song/cs401data/wordlists/Ratings_Warriner_et_al.csv', {'v': 2, 'a': 5, 'd': 8}),
+    'bgldict': _read_dict("/u/cs401/Wordlists/BristolNorms+GilhoolyLogie.csv", {'aoa': 3, 'img': 4, 'fam': 5}),
+    'vaddict': _read_dict('/u/cs401/Wordlists/Ratings_Warriner_et_al.csv', {'v': 2, 'a': 5, 'd': 8}),
     'bglempty': {'aoa': 0.0, 'img': 0.0, 'fam': 0.0},
     'vadempty': {'v': 0.0, 'a': 0.0, 'd': 0.0}
 }
@@ -207,8 +207,8 @@ def main( args ):
 
     # TODO: your code here
     # Prepare for data read
-    featsdir = "/Users/florian_song/cs401data/feats"
-    # featsdir = "/u/cs401/A1/feats"
+    # featsdir = "/Users/florian_song/cs401data/feats"
+    featsdir = "/u/cs401/A1/feats"
 
     liwc = {
         'Left': _read_feats(featsdir + '/Left_IDs.txt', featsdir + '/Left_feats.dat.npy'),

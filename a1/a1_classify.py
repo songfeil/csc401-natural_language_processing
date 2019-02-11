@@ -1,6 +1,6 @@
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import SelectKBest
-from sklearn.feature_selection import chi2
+from sklearn.feature_selection import f_classif
 from sklearn.svm import SVC, LinearSVC
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.neural_network import MLPClassifier
@@ -43,16 +43,12 @@ def class31(filename):
        y_test: NumPy array, with the selected testing classes
        i: int, the index of the supposed best classifier
     '''
-    print('TODO Section 3.1')
-    iBest = -1
-
     npzfile = np.load(filename)
     arr = npzfile[npzfile.files[0]]
     npzfile.close()
 
     X, y = arr[:, :-1], arr[:, -1].astype('int')
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    print(X_train.shape, y_train.shape)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=True)
 
     classifiers = {
         1: LinearSVC(),
@@ -67,20 +63,18 @@ def class31(filename):
     for idx, clf in classifiers.items():
         clf.fit(X_train, y_train)
         res = clf.predict(X_test)
-        print("Finish training & predicting for classifier", idx)
         cmat = np.matrix(confusion_matrix(y_test, res))
-        print(cmat)
         csvdata[idx - 1] = [idx, accuracy(cmat)] + recall(cmat) + precision(cmat) + np.concatenate(cmat.tolist()).tolist()
         accu[idx - 1] = accuracy(cmat)
-        print("Accuracy", accuracy(cmat))
-        print("------------------------------------------------\n")
+        # print("Classifier", idx, "Accuracy", accuracy(cmat))
+        # print("------------------------------------------------\n")
 
     with open("a1_3.1.csv", "w") as f:
         writer = csv.writer(f)
         writer.writerows(csvdata)
 
     iBest = accu.index(max(accu)) + 1
-    print("Best classifier", iBest)
+    # print("Best classifier", iBest)
 
     return (X_train, X_test, y_train, y_test, iBest)
 
@@ -103,7 +97,7 @@ def class32(X_train, X_test, y_train, y_test,iBest):
 
     classifiers = {
         1: LinearSVC(),
-        2: SVC(kernel="rbf", gamma=2),
+        2: SVC(kernel="rbf", gamma=2, max_iter=1000),
         3: RandomForestClassifier(n_estimators=10, max_depth=5),
         4: MLPClassifier(alpha=0.05),
         5: AdaBoostClassifier()
@@ -113,7 +107,7 @@ def class32(X_train, X_test, y_train, y_test,iBest):
     X_1k, y_1k = None, None
 
     for size in train_size:
-        X_train_batch, y_train_batch, _, _ = train_test_split(X_train, y_train, train_size=(size/X_train.shape[0]))
+        _, X_train_batch, _, y_train_batch = train_test_split(X_train, y_train, test_size=(size/X_train.shape[0]))
 
         if size == 1000:
             X_1k, y_1k = X_train_batch, y_train_batch
@@ -124,6 +118,8 @@ def class32(X_train, X_test, y_train, y_test,iBest):
         res = clf.predict(X_test)
         cmat = np.matrix(confusion_matrix(y_test, res))
         accuracies.append(accuracy(cmat))
+
+        # print("Finish size ", size)
 
     with open("a1_3.2.csv", "w") as f:
         writer = csv.writer(f)
@@ -143,30 +139,30 @@ def class33(X_train, X_test, y_train, y_test, i, X_1k, y_1k):
        X_1k: numPy array, just 1K rows of X_train (from task 3.2)
        y_1k: numPy array, just 1K rows of y_train (from task 3.2)
     '''
-    print('TODO Section 3.3')
     ks = [5, 10, 20, 30, 40, 50]
-    res = []
+    csvv = []
 
-    X_1k_best5, X_train_best5 = None, None
+    X_1k_best5, X_train_best5, X_1k_mask, X_train_mask = None, None, None, None
 
     for k in ks:
-        selector_1k = SelectKBest(chi2, k)
+        selector_1k = SelectKBest(f_classif, k)
         X_new_1k = selector_1k.fit_transform(X_1k, y_1k)
         pp_1k = selector_1k.pvalues_
 
-        selector_train = SelectKBest(chi2, k)
+        selector_train = SelectKBest(f_classif, k)
         X_new_train = selector_train.fit_transform(X_train, y_train)
         pp_train = selector_train.pvalues_
 
         if k == 5:
             X_1k_best5, X_train_best5 = X_new_1k, X_new_train
+            X_1k_mask, X_train_mask = selector_1k.get_support(), selector_train.get_support()
 
-        res.append([k] + np.array(pp_train).tolist())
-        res.append([-1, k] + np.array(pp_train)[selector_train.get_support()].tolist())
+        csvv.append([k] + np.array(pp_train).tolist())
+        csvv.append([-1, k] + np.array(pp_train)[selector_train.get_support()].tolist())
 
     classifiers = {
         1: LinearSVC(),
-        2: SVC(kernel="rbf", gamma=2),
+        2: SVC(kernel="rbf", gamma=2, max_iter=1000),
         3: RandomForestClassifier(n_estimators=10, max_depth=5),
         4: MLPClassifier(alpha=0.05),
         5: AdaBoostClassifier()
@@ -176,21 +172,21 @@ def class33(X_train, X_test, y_train, y_test, i, X_1k, y_1k):
 
     clf_1k = sklearn.base.clone(classifiers[i])
     clf_1k.fit(X_1k_best5, y_1k)
-    res = clf_1k.predict(X_test)
+    res = clf_1k.predict(X_test[:, X_1k_mask])
     cmat = np.matrix(confusion_matrix(y_test, res))
     accuracies.append(accuracy(cmat))
 
     clf_train = sklearn.base.clone(classifiers[i])
     clf_train.fit(X_train_best5, y_train)
-    res = clf_train.predict(X_test)
+    res = clf_train.predict(X_test[:, X_train_mask])
     cmat = np.matrix(confusion_matrix(y_test, res))
     accuracies.append(accuracy(cmat))
 
-    res.append(accuracies)
+    csvv.append(accuracies)
 
     with open("a1_3.3.csv", "w") as f:
         writer = csv.writer(f)
-        writer.writerows(res)
+        writer.writerows(csvv)
 
 
 def class34( filename, i ):
@@ -200,8 +196,6 @@ def class34( filename, i ):
        filename : string, the name of the npz file from Task 2
        i: int, the index of the supposed best classifier (from task 3.1)
         '''
-    print('TODO Section 3.4')
-
     npzfile = np.load(filename)
     arr = npzfile[npzfile.files[0]]
     npzfile.close()
@@ -210,7 +204,7 @@ def class34( filename, i ):
 
     classifiers = {
         1: LinearSVC(),
-        2: SVC(kernel="rbf", gamma=2),
+        2: SVC(kernel="rbf", gamma=2, max_iter=1000),
         3: RandomForestClassifier(n_estimators=10, max_depth=5),
         4: MLPClassifier(alpha=0.05),
         5: AdaBoostClassifier()
@@ -230,12 +224,11 @@ def class34( filename, i ):
             clf = sklearn.base.clone(classifier)
             clf.fit(X_train, y_train)
             res = clf.predict(X_test)
-            print("Finish training & predicting for classifier", idx)
             cmat = np.matrix(confusion_matrix(y_test, res))
-            accuracies[idx] = accuracy(cmat)
-            print("Accuracy", accuracy(cmat))
-            print("------------------------------------------------\n")
+            accuracies[idx - 1] = accuracy(cmat)
+            # print("Classifier", idx, "Accuracy", accuracy(cmat))
 
+        # print("------------------------------------------------\n")
         fold_accuracy.append(accuracies)
 
     # Compare accuracies between i and other classifier
@@ -262,9 +255,6 @@ if __name__ == "__main__":
 
     # TODO : complete each classification experiment, in sequence.
     X_train, X_test, y_train, y_test, iBest = class31(args.input)
-    np.savez_compressed('train.npz', x_train=X_train, y_train=y_train, ibest=np.array(iBest))
-    np.savez_compressed('test.npz', x_train=X_test, y_train=y_test, ibest=np.array(iBest))
     X_1k, y_1k = class32(X_train, X_test, y_train, y_test, iBest)
-    np.savez_compressed('onek.npz', xonek=X_1k, yonek=y_1k, ibest=np.array(iBest))
     class33(X_train, X_test, y_train, y_test, iBest, X_1k, y_1k)
     class34(args.input, iBest)
