@@ -38,7 +38,8 @@ def preplexity(LM, test_dir, language, smoothing = False, delta = 0.0):
         pp = 2**(-pp/N)
     return pp
 
-traindir = '../data/Hansard/Testing/'
+traindir = '../data/Hansard/Training/'
+testdir = '../data/Hansard/Testing/'
 
 #test
 # test_LM = lm_train("lm_train_testdir/", "e", "e_temp")
@@ -48,10 +49,10 @@ languages = ['e', 'f']
 for lang in languages:
     print("Language:", lang)
     test_LM = lm_train(traindir, lang, lang+"_temp")
-    print("No smoothing:", preplexity(test_LM, traindir, lang, smoothing=False, delta=0.1))
+    print("No smoothing:", preplexity(test_LM, testdir, lang, smoothing=False, delta=0.1))
 
-    deltas = [100, 10, 1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5]
+    deltas = [1, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
     for d in deltas:
-        print("Delta=", d, preplexity(test_LM, traindir, lang, smoothing=True, delta=d))
+        print("Delta=", d, preplexity(test_LM, testdir, lang, smoothing=True, delta=d))
 
     print("--------------------")

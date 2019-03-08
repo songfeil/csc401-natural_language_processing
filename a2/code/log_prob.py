@@ -29,14 +29,14 @@ def log_prob(sentence, LM, smoothing=False, delta=0.0, vocabSize=0):
 
         next_word = wordlist[idx + 1]
 
-        c_wd = LM['uni'][word]
-        c_wd_nwd = LM['bi'][word].get(next_word, 0)
+        c_wd = LM['uni'].get(word, 0)
+        c_wd_nwd = LM['bi'].get(word, {}).get(next_word, 0)
 
         if smoothing:
             c_wd += delta * vocabSize
             c_wd_nwd += delta
 
-        if c_wd == 0 and c_wd_nwd == 0:
+        if c_wd == 0 or c_wd_nwd == 0:
             return float('-inf')
 
         lp += log(c_wd_nwd / c_wd, 2)

@@ -3,11 +3,13 @@
 
 import argparse
 import _pickle as pickle
+import os
+import math
 
-import decode
-from align_ibm1 import *
-from BLEU_score import *
-from lm_train import *
+import a2.code.decode as decode
+from a2.code.align_ibm1 import *
+from a2.code.BLEU_score import *
+from a2.code.lm_train import *
 
 __author__ = 'Raeid Saqur'
 __copyright__ = 'Copyright (c) 2018, Raeid Saqur'
@@ -35,15 +37,21 @@ def _getLM(data_dir, language, fn_LM, use_cached=True):
 
     Returns
     -------
-    A language model 
+    A language model
     """
-    pass
+    if use_cached and os.path.isfile(fn_LM+'.pickle'):
+        with open(fn_LM+'.pickle', 'rb') as f:
+            LM = pickle.load(f)
+    else:
+        LM = lm_train(data_dir, language, fn_LM)
+
+    return LM
 
 def _getAM(data_dir, num_sent, max_iter, fn_AM, use_cached=True):
     """
     Parameters
     ----------
-    data_dir    : (string) The top-level directory continaing the data 
+    data_dir    : (string) The top-level directory continaing the data
     num_sent    : (int) the maximum number of training sentences to consider
     max_iter    : (int) the maximum number of iterations of the EM algorithm
     fn_AM       : (string) the location to save the alignment model
@@ -51,9 +59,15 @@ def _getAM(data_dir, num_sent, max_iter, fn_AM, use_cached=True):
 
     Returns
     -------
-    An alignment model 
+    An alignment model
     """
-    pass
+    if use_cached and os.path.isfile(fn_AM+'.pickle'):
+        with open(fn_AM+'.pickle', 'rb') as f:
+            AM = pickle.load(f)
+    else:
+        AM = align_ibm1(data_dir, num_sent, max_iter, fn_AM)
+
+    return AM
 
 def _get_BLEU_scores(eng_decoded, eng, google_refs, n):
     """
@@ -68,8 +82,21 @@ def _get_BLEU_scores(eng_decoded, eng, google_refs, n):
     -------
     An array of evaluation (BLEU) scores for the sentences
     """
-    pass
-   
+    result = []
+
+    for de, en, go in zip(eng_decoded, eng, google_refs):
+        candidate, references = de, [en, go]
+
+        pi = 1
+        bp = BLEU_score(candidate, references, 0, True)
+        for i in range(1, n + 1):
+            pi *= BLEU_score(candidate, references, i, False)
+
+        result.append(bp * (pi ** (1 / n)))
+
+    return result
+    # return [BLEU_score(de, [en, go], n) for de, en, go in zip(eng_decoded, eng, google_refs)]
+
 
 def main(args):
     """
@@ -81,25 +108,51 @@ def main(args):
     It's entirely upto you how you want to write Task5.txt. This is just
     an (sparse) example.
     """
-    
-
     ## Write Results to Task5.txt (See e.g. Task5_eg.txt for ideation). ##
 
-    '''
     f = open("Task5.txt", 'w+')
-    f.write(discussion) 
+    f.write(discussion)
     f.write("\n\n")
     f.write("-" * 10 + "Evaluation START" + "-" * 10 + "\n")
 
+    datadir = '../data/Hansard/Training/'
+    test_dir = '../data/Hansard/Testing/Task5.f'
+    hansard_ref_dir = '../data/Hansard/Testing/Task5.e'
+    google_ref_dir = '../data/Hansard/Testing/Task5.google.e'
+
+    test, href, gref = [], [], []
+    with open(test_dir) as file:
+        test.extend([preprocess(l.strip(), 'f') for l in file.readlines()])
+    with open(hansard_ref_dir) as file:
+        href.extend([preprocess(l.strip(), 'e') for l in file.readlines()])
+    with open(google_ref_dir) as file:
+        gref.extend([preprocess(l.strip(), 'e') for l in file.readlines()])
+
+    use_cached = True
+    max_iter = 50
+    f.write("MAX ITERATION: " + str(max_iter) + "\n")
+
+    AM_size = [1000, 10000, 15000, 30000]
+    AM_names = ['1K', '10K', '15K', '30K']
+    AMs = [_getAM(datadir, sn[0], max_iter, sn[1]+ str(max_iter) +'_AM', use_cached) for sn in zip(AM_size, AM_names)]
+
+    eLM = _getLM(datadir, 'e', 'e_LM', use_cached)
+    fLM = _getLM(datadir, 'f', 'f_LM', use_cached)
+
+
     for i, AM in enumerate(AMs):
-        
+
         f.write(f"\n### Evaluating AM model: {AM_names[i]} ### \n")
         # Decode using AM #
+        decoded_res = []
+        for fr in test:
+            decoded_res.append(decode.decode(fr, LM=eLM, AM=AM))
+
         # Eval using 3 N-gram models #
         all_evals = []
         for n in range(1, 4):
             f.write(f"\nBLEU scores with N-gram (n) = {n}: ")
-            evals = _get_BLEU_scores(...)
+            evals = _get_BLEU_scores(decoded_res, href, gref, n)
             for v in evals:
                 f.write(f"\t{v:1.4f}")
             all_evals.append(evals)
@@ -108,8 +161,6 @@ def main(args):
 
     f.write("-" * 10 + "Evaluation END" + "-" * 10 + "\n")
     f.close()
-    '''
-    pass
 
 
 if __name__ == "__main__":

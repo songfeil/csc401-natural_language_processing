@@ -1,22 +1,22 @@
 import random
 import numpy as np
 from math import log
-from preprocess import *
-from lm_train import *
-from log_prob import *
-from align_ibm1 import * 
+from a2.code.preprocess import *
+from a2.code.lm_train import *
+from a2.code.log_prob import *
+from a2.code.align_ibm1 import *
 
 def decode(french, LM, AM):
-    
+
     N = 5           # the maximum number of translations for each word in the sentence
-    MAXTRANS = 128; # the maximum number of greedy transformations we perform 
+    MAXTRANS = 128; # the maximum number of greedy transformations we perform
     NUMSWAPS = 2;   # the number of random re-orderings of the words
-    
+
     proposed_french_words = french.split()
     proposed_english_words = []
-    
+
     english_words = AM.keys()
-    
+
     for f_word in proposed_french_words:
         alternatives = []
         for e_word in english_words:
@@ -31,7 +31,7 @@ def decode(french, LM, AM):
     prediction = [word[0] for word in proposed_english_words]
     prediction_score = calc_score(prediction, LM)
     #print("First Prediction:", " ".join([x[0] for x in prediction]), "\t Score:", prediction_score)
-    
+
     for i in range(MAXTRANS):
         #pick new words
         new_guess = []
@@ -46,16 +46,16 @@ def decode(french, LM, AM):
         new_guess = SS + new_guess + SE
 
         new_guess_prob = calc_score(new_guess, LM)
-        
+
         if new_guess_prob > prediction_score:
             prediction = new_guess
             prediction_score = new_guess_prob
-            
+
     #print()
     #print("Last Prediction:", " ".join([x[0] for x in prediction]), "\t Score:", prediction_score)
     return " ".join([x[0] for x in prediction])
-    
-    
+
+
 def deal_with_alternatives(lst, word, prob, num_words = 5):
     if len(lst) < num_words:
         lst.append((word, prob))

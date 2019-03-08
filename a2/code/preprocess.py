@@ -15,19 +15,19 @@ def preprocess(in_sentence, language):
 	out_sentence: (string) the modified sentence
     """
 
-    out_sentence = in_sentence.strip()
+    out_sentence = in_sentence.strip().lower()
 
     # 1. separate final punctuation
-    out_sentence = out_sentence[:-1] + " " + out_sentence[-1]
+    out_sentence = out_sentence[:-1] + " " + out_sentence[-1] if out_sentence[-1] in "!\"#$%&,()*+-./:;<=>?@[]^_`{|}~" else out_sentence
 
     # 2. seperate other required chars
-    out_sentence = re.sub('[.,:;()-+-<>=\"]', lambda x: " " + x.group() + " ", out_sentence)
+    out_sentence = re.sub('[.!?,:;()-+-<>=\"]', lambda x: " " + x.group() + " ", out_sentence)
 
     # 3. if french, split contractions:
     if language == "f":
-        out_sentence = re.sub(r"\b(l'|c'|j'|t'|qu')", lambda x: " " + x.group() + " ", out_sentence)
-        re.sub(r"\b(puisqu|lorsqu)'(on|il)\b", lambda x: x.group(1) + "' " + x.group(2), out_sentence)
-        re.sub(r"\b(d') +(abord|accord|ailleurs|habitude)\b", lambda x: x.group(1) + x.group(2), out_sentence)
+        out_sentence = re.sub(r"\b([a-z]'|qu')", lambda x: " " + x.group() + " ", out_sentence)
+        out_sentence = re.sub(r"\b(puisqu|lorsqu)'(on|il)\b", lambda x: x.group(1) + "' " + x.group(2), out_sentence)
+        out_sentence = re.sub(r"\b(d') +(abord|accord|ailleurs|habitude)\b", lambda x: x.group(1) + x.group(2), out_sentence)
 
     # 4. remove extra space, add SENTSTART and SENTEND
     wordlist = out_sentence.split()
