@@ -155,7 +155,10 @@ def test( mfcc, correctID, models, k=5 ):
     T = X.shape[0]
     logLiks = []
 
+    print("Test correctID", correctID)
+
     for myTheta in models:
+        print("    Testing model:", myTheta.name)
         preCompM = [None] * M
         # Compute Intermediate Results
         lbmx, lpmx = np.zeros((M, T)), np.zeros((M, T))
